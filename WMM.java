@@ -7,11 +7,25 @@ import java.util.regex.Pattern;
 import java.util.List;
 import java.util.ArrayList;
 
+// Setup: place file all.sam into wmm_tata_finder folder. For path, 
+// Use backslash on windows, forward slash on linux.
+
+// TODOS: Implement memeGenWeightMatrix and getNormalizingTerms.
+// Remove extra counters and printlns in filterReads after we are done
+// tweaking filter constants.
+
+// For filterReads possibly add another filter, taking out reads that have
+// high number of mismatches in non poly A tail region?
+
 public class WMM {
+	// SAM codes for unmapped and low quality reads.
 	private static final int UNMAPPED = 4;
 	private static final int LOWQUALITY = 512;
+
+	// pattern for matching poly A tails at end of sequence
 	private static final Pattern POLYA = Pattern.compile("([ARWMDHVN]+)$");
 
+    // weight matrix layout:
 	/*   1 2 3 4 5 6
 	 * A
 	 * C
@@ -34,25 +48,28 @@ public class WMM {
 	                                  {5, 5, 5, 5, 5, 5},
 	                                  {5, 5, 85, 5, 5, 5}};
 
+    // Human background nucleotide frequencies
 	private static final double BACKGROUND_A = 0.293;
 	private static final double BACKGROUND_G = 0.207;
 	private static final double BACKGROUND_C = 0.200;
 	private static final double BACKGROUND_T = 0.300;
 
-    // Current constants result in 1088 filtered reads.
+    // Current filter constants result in 1088 candidate reads.
 	public static final int MAXALIGNMENTSCORE = -3;
 	public static final int MINMISMATCHES = 5;
 	public static final int MINPOLYALENGTH = 10;
 	public static final int MAXPOLYALENGTH = 55;
 
     // TODO: Return a new weight matrix formed by performing meme algo on weightMatrix.
-	public static int[][] meme(int[][] weightMatrix) {
+    // We will be using W1 to make W2.
+	public static int[][] memeGenWeightMatrix(int[][] weightMatrix) {
 		return null;
 	}
 
     // TODO: Return an array of normalizing terms.
     // Get denominators for each column to normalize the weights. Each normalizing term will be
-	// the sum of all the weights in each column.
+	// the sum of all the weights in each column. scoreSequences uses normalizing term array to 
+	// divide each of the terms by the corresponding column normalizing term.
 	public static int[] getNormalizingTerms(int[][] weightMatrix) {
 		return null;
 	}
@@ -60,22 +77,23 @@ public class WMM {
 	public static void main(String[] args) {
 		// use backslash on windows, forward slash on linux
 	 	String path = System.getProperty("user.dir") + "/all.sam";
-	 	List<FilteredRead> filteredReads = null;
+	 	List<FilteredRead> filteredReads;
 	 	try {
 	 		filteredReads = WMM.filterReads(path);
 	 	} catch (IOException e) {
 	 		e.printStackTrace();
+	 		return;
 	 	}
 	 	int defaultNormalizingTerm[] = {100, 100, 100, 100, 100, 100};
 	 	ScoringReport s0 = scoreSequences(filteredReads, W0, defaultNormalizingTerm);
 	 	ScoringReport s1 = scoreSequences(filteredReads, W1, defaultNormalizingTerm);
 
 	 	// calculate W2 with meme algo
-	 	int W2[][] = meme(W1);
-	 	//
+	 	int W2[][] = memeGenWeightMatrix(W1);
 	 	int[] normalizingTerm = getNormalizingTerms(W2);
-
 	 	ScoringReport s2 = scoreSequences(filteredReads, W2, normalizingTerm);
+
+	 	// print results
 	 	System.out.println("Model: WMM0");
 	 	System.out.println("Number of Candidates with Positive LLR: " + s0.getCandidatesPositiveLLR());
 	 	System.out.println("Distance between cleavate site and left end of best scoring hit: " + s0.getDistanceTATAToCleavage());
@@ -92,6 +110,8 @@ public class WMM {
 	 	System.out.println("Relative Entropy: " + s2.getRelativeEntropy());
 	 }
 
+     // scores each filtered read by the weight matrix. divides each weight matrix term by
+     // the corresponding normalizing term.
 	 public static ScoringReport scoreSequences(List<FilteredRead> filteredReads, 
 	 	                                        int[][] weightMatrix, int[] normalizingTerm) {
 	 	int candidatesPositiveLLR = 0;
@@ -123,6 +143,7 @@ public class WMM {
 	 	return new ScoringReport(candidatesPositiveLLR, avgLLR, relEntropy);
 	 }
 
+     // calculates relative entropy of a weight matrix
 	 public static double relativeEntropy(int[][] weightMatrix, int[] normalizingTerm) {
 	 	double wholeSum = 0;
 	 	for (int i = 0; i < weightMatrix[0].length; i++) {
@@ -149,6 +170,7 @@ public class WMM {
 	 	return wholeSum;
 	 }
 
+     // calculates LLR for a score frame (6 bases)
 	 public static double scoreFrame(String frame, int[][] weightMatrix, int[] normalizingTerm) {
 	 	double sum = 0;
 	 	for (int i = 0; i < 6; i++) {
@@ -189,6 +211,9 @@ public class WMM {
 	 	return sum;
 	}
 
+    // Keeps reads likely to have poly A tails.
+    // skip counts are used to see what filters are removing how many reads.
+    // remove these when we are done tweaking constants.
 	public static List<FilteredRead> filterReads(String fileName) throws IOException {
 		FileInputStream fstream = new FileInputStream(fileName);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(fstream));
@@ -255,6 +280,7 @@ public class WMM {
 		return sequences;
 	}
 
+    // scoring report for each weight matrix run.
 	public static class ScoringReport {
 		private int candidatesPositiveLLR;
 		private double distanceTATAToCleavage;
@@ -277,6 +303,7 @@ public class WMM {
 		}
 	}
 
+    // stores data for each filtered read.
 	public static class FilteredRead {
 		private String readID;
 		private String location;
