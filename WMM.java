@@ -7,7 +7,9 @@ import java.util.regex.Pattern;
 import java.util.List;
 import java.util.ArrayList;
 
-// Setup: place file all.sam into wmm_tata_finder folder. For path, 
+// SAM file: ftp://ftp.cs.washington.edu/courses/cse427/bowtie-results/GRCh38/all.sam.gz
+
+// Setup: unzip, then place file all.sam into wmm_tata_finder folder. For path, 
 // Use backslash on windows, forward slash on linux.
 
 // TODOS: Implement memeGenWeightMatrix and getNormalizingTerms.
