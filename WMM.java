@@ -68,12 +68,17 @@ public class WMM {
 		return null;
 	}
 
-    // TODO: Return an array of normalizing terms.
-    // Get denominators for each column to normalize the weights. Each normalizing term will be
+    	// Get denominators for each column to normalize the weights. Each normalizing term will be
 	// the sum of all the weights in each column. scoreSequences uses normalizing term array to 
 	// divide each of the terms by the corresponding column normalizing term.
 	public static int[] getNormalizingTerms(int[][] weightMatrix) {
-		return null;
+		int[] normalizingTerms = new int[weightMatrix[0].length];
+		for (int i = 0; i < weightMatrix.length; i++) {
+			for (int j = 0; j < weightMatrix[i].length; j++) {
+				normalizingTerms[j] += weightMatrix[i][j];
+			}
+		}
+		return normalizingTerms;
 	}
 
 	public static void main(String[] args) {
